@@ -1,0 +1,424 @@
+{
+  "id": "google_calendar",
+  "name": "Google Calendar & Tasks",
+  "version": "1.0.0",
+  "description": "Show today's agenda, what's next and what's happening now from Google Calendar, plus your Google Tasks due today. Signs in to your Google account through your own Google Cloud app.",
+  "author": "FiestaBoard Team",
+  "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--google-calendar",
+  "documentation": "README.md",
+  "icon": "calendar-days",
+  "category": "utility",
+  "fiestaboard_version": ">=9.8.0",
+  "min_refresh_seconds": 60,
+  "oauth": {
+    "provider_name": "Google",
+    "flows": [
+      "relay"
+    ],
+    "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+    "token_url": "https://oauth2.googleapis.com/token",
+    "scopes": [
+      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/tasks.readonly"
+    ],
+    "client_id_setting": "client_id",
+    "client_secret_setting": "client_secret",
+    "authorization_params": {
+      "access_type": "offline",
+      "prompt": "consent"
+    },
+    "app_setup_url": "https://console.cloud.google.com/auth/clients"
+  },
+  "settings_schema": {
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Enable Google Calendar & Tasks",
+        "default": false
+      },
+      "client_id": {
+        "type": "string",
+        "title": "Client ID",
+        "description": "The Client ID of your own Google Cloud OAuth client (type Web application). It ends in .apps.googleusercontent.com. Add the redirect URI shown in Account connection to the client first."
+      },
+      "client_secret": {
+        "type": "string",
+        "title": "Client Secret",
+        "description": "The client secret of the same OAuth client. It stays on your board and is only sent to Google when signing in.",
+        "ui:widget": "password"
+      },
+      "calendar_ids": {
+        "type": "string",
+        "title": "Calendars",
+        "description": "Calendar IDs to show, separated by commas. 'primary' is your main calendar; find another calendar's ID in Google Calendar under Settings > the calendar > Integrate calendar.",
+        "default": "primary"
+      },
+      "show_declined": {
+        "type": "boolean",
+        "title": "Show Declined Events",
+        "description": "Include events you said No to.",
+        "default": false
+      },
+      "show_all_day": {
+        "type": "boolean",
+        "title": "Show All-Day Events",
+        "description": "Include all-day events such as holidays and birthdays in the agenda.",
+        "default": true
+      },
+      "show_tasks": {
+        "type": "boolean",
+        "title": "Show Tasks",
+        "description": "Read Google Tasks for the tasks variables. Turn off if you only want the calendar.",
+        "default": true
+      },
+      "include_overdue": {
+        "type": "boolean",
+        "title": "Include Overdue Tasks",
+        "description": "Also list open tasks whose due date has passed, after the ones due today.",
+        "default": false
+      },
+      "time_format": {
+        "type": "string",
+        "title": "Time Format",
+        "enum": [
+          "12h",
+          "24h"
+        ],
+        "default": "12h",
+        "description": "9:30AM or 09:30."
+      },
+      "timezone": {
+        "type": "string",
+        "title": "Timezone",
+        "description": "Which day counts as today and how times are shown. Leave empty to use FiestaBoard's timezone.",
+        "default": "",
+        "ui:widget": "timezone"
+      },
+      "refresh_seconds": {
+        "type": "integer",
+        "title": "Refresh Interval (seconds)",
+        "description": "How often to check Google for changes.",
+        "default": 300,
+        "minimum": 60,
+        "maximum": 3600
+      }
+    }
+  },
+  "variables": {
+    "groups": {
+      "today": {
+        "label": "Today"
+      },
+      "now": {
+        "label": "Right Now"
+      },
+      "next_event": {
+        "label": "Next Event"
+      },
+      "tasks": {
+        "label": "Tasks"
+      }
+    },
+    "simple": {
+      "date_label": {
+        "description": "Today's date",
+        "type": "string",
+        "max_length": 10,
+        "group": "today",
+        "example": "FRI OCT 2"
+      },
+      "headline": {
+        "description": "How many events today: 4 EVENTS TODAY, 1 EVENT TODAY or NO EVENTS TODAY",
+        "type": "string",
+        "max_length": 15,
+        "group": "today",
+        "example": "4 EVENTS TODAY"
+      },
+      "event_count": {
+        "description": "Events today, all-day ones included",
+        "type": "number",
+        "max_length": 2,
+        "group": "today",
+        "example": "4"
+      },
+      "events_left": {
+        "description": "Events today that have not ended yet",
+        "type": "number",
+        "max_length": 2,
+        "group": "today",
+        "example": "2"
+      },
+      "all_day_count": {
+        "description": "All-day events today",
+        "type": "number",
+        "max_length": 2,
+        "group": "today",
+        "example": "1"
+      },
+      "is_busy": {
+        "description": "Whether a timed event is happening right now (events marked Free do not count)",
+        "type": "boolean",
+        "group": "now",
+        "example": "true"
+      },
+      "busy_tile": {
+        "description": "One colour tile: red while busy, green while free",
+        "type": "string",
+        "max_length": 1,
+        "group": "now",
+        "example": "{66}"
+      },
+      "now_title": {
+        "description": "The event happening right now (empty when free)",
+        "type": "string",
+        "max_length": 22,
+        "group": "now",
+        "example": "DESIGN REVIEW"
+      },
+      "now_until": {
+        "description": "When the current event ends",
+        "type": "string",
+        "max_length": 13,
+        "group": "now",
+        "example": "UNTIL 12:30PM"
+      },
+      "next_title": {
+        "description": "Title of the next event to start, within the next 7 days",
+        "type": "string",
+        "max_length": 22,
+        "group": "next_event",
+        "example": "DESIGN REVIEW"
+      },
+      "next_time": {
+        "description": "Start time of the next event, or ALL DAY",
+        "type": "string",
+        "max_length": 7,
+        "group": "next_event",
+        "example": "11:30AM"
+      },
+      "next_day": {
+        "description": "Day of the next event: TODAY, TOMORROW or a date",
+        "type": "string",
+        "max_length": 10,
+        "group": "next_event",
+        "example": "TODAY"
+      },
+      "next_in": {
+        "description": "How soon the next event starts",
+        "type": "string",
+        "max_length": 9,
+        "group": "next_event",
+        "example": "IN 25M"
+      },
+      "next_location": {
+        "description": "Location of the next event",
+        "type": "string",
+        "max_length": 22,
+        "group": "next_event",
+        "example": "ROOM 4B"
+      },
+      "next_line": {
+        "description": "Start time and title of the next event on one line",
+        "type": "string",
+        "max_length": 22,
+        "group": "next_event",
+        "example": "11:30AM DESIGN REVIEW"
+      },
+      "tasks_due_count": {
+        "description": "Open tasks due today",
+        "type": "number",
+        "max_length": 2,
+        "group": "tasks",
+        "example": "2"
+      },
+      "tasks_overdue_count": {
+        "description": "Open tasks due before today (only counted when Include Overdue Tasks is on)",
+        "type": "number",
+        "max_length": 2,
+        "group": "tasks",
+        "example": "1"
+      },
+      "tasks_line": {
+        "description": "Tasks due today as a sentence: 2 TASKS DUE TODAY or NO TASKS DUE",
+        "type": "string",
+        "max_length": 22,
+        "group": "tasks",
+        "example": "2 TASKS DUE TODAY"
+      },
+      "next_task": {
+        "description": "Title of the first task due",
+        "type": "string",
+        "max_length": 22,
+        "group": "tasks",
+        "example": "WATER THE PLANTS"
+      }
+    },
+    "arrays": {
+      "events": {
+        "label_field": "title",
+        "item_fields": {
+          "title": {
+            "description": "Event title",
+            "max_length": 22,
+            "group": "today"
+          },
+          "time": {
+            "description": "Start time, or ALL DAY",
+            "max_length": 7,
+            "group": "today"
+          },
+          "end_time": {
+            "description": "End time (empty for all-day events)",
+            "max_length": 7,
+            "group": "today"
+          },
+          "line": {
+            "description": "Start time and title on one line",
+            "max_length": 22,
+            "group": "today"
+          },
+          "location": {
+            "description": "Location",
+            "max_length": 22,
+            "group": "today"
+          }
+        }
+      },
+      "tasks": {
+        "label_field": "title",
+        "item_fields": {
+          "title": {
+            "description": "Task title",
+            "max_length": 22,
+            "group": "tasks"
+          },
+          "list": {
+            "description": "Task list it belongs to",
+            "max_length": 22,
+            "group": "tasks"
+          },
+          "overdue": {
+            "description": "Whether the task is past due",
+            "max_length": 5,
+            "group": "tasks"
+          }
+        }
+      }
+    }
+  },
+  "teaser": "{66} 9AM STANDUP",
+  "previews": [
+    {
+      "device_type": "flagship",
+      "rows": [
+        "  {66} 4 EVENTS TODAY",
+        "     9AM STANDUP",
+        "11:30AM DESIGN REVIEW",
+        "  1PM LUNCH WITH SAM",
+        "     4PM DENTIST",
+        "  2 TASKS DUE TODAY"
+      ]
+    },
+    {
+      "device_type": "note",
+      "rows": [
+        "NEXT IN 25M",
+        "DESIGN REVIEW",
+        "11:30AM TODAY"
+      ]
+    },
+    {
+      "label": "Busy now",
+      "device_type": "flagship",
+      "rows": [
+        "   {63} DESIGN REVIEW",
+        "    UNTIL 12:30PM",
+        "",
+        "        NEXT",
+        "  1PM LUNCH WITH SAM",
+        "       IN 1H 30M"
+      ]
+    },
+    {
+      "label": "Note Array (2 wide)",
+      "device_type": "note_array",
+      "notes_wide": 2,
+      "notes_tall": 1,
+      "rows": [
+        "   {66} FRI OCT 2 - 4 EVENTS TODAY",
+        "     11:30AM DESIGN REVIEW",
+        "      2 TASKS DUE TODAY"
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "docs/board-display.png",
+      "alt": "Today's Google Calendar agenda on a FiestaBoard: event count, four events with times, and tasks due",
+      "caption": "The default template on a workday",
+      "primary": true
+    }
+  ],
+  "demo": {
+    "flagship": {
+      "name": "Google Calendar Demo",
+      "template": [
+        "{{google_calendar.busy_tile}} {{google_calendar.headline}}",
+        "{{google_calendar.events.0.line}}",
+        "{{google_calendar.events.1.line}}",
+        "{{google_calendar.events.2.line}}",
+        "{{google_calendar.events.3.line}}",
+        "{{google_calendar.tasks_line}}"
+      ],
+      "line_metadata": [
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "center",
+          "wrap": false
+        },
+        {
+          "alignment": "center",
+          "wrap": false
+        }
+      ]
+    },
+    "note": {
+      "name": "Google Calendar (Note)",
+      "template": [
+        "NEXT {{google_calendar.next_in}}",
+        "{{google_calendar.next_title}}",
+        "{{google_calendar.next_time}} {{google_calendar.next_day}}"
+      ],
+      "line_metadata": [
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        },
+        {
+          "alignment": "left",
+          "wrap": false
+        }
+      ]
+    }
+  }
+}
