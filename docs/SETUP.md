@@ -156,7 +156,7 @@ The connection itself is made with the **Sign in with Google** button, not a set
 
 - Press **Sign in with Google** (or **Reconnect**) in the plugin's **Account connection** section. If the button is greyed out, paste your Client ID and Client Secret first.
 - **Reconnect needed** after about a week means the consent screen is still in **Testing**. Open **Google Auth platform** > **Audience**, press **Publish app** so it reads **In production**, then press **Reconnect**.
-- It also happens if you removed FiestaBoard's access in your [Google Account permissions](https://myaccount.google.com/permissions) or changed your password.
+- It also happens if you removed FiestaBoard's access in your [Google Account permissions](https://myaccount.google.com/permissions), or deleted the OAuth client or its secret.
 
 **Google shows "Error 400: redirect_uri_mismatch"**
 

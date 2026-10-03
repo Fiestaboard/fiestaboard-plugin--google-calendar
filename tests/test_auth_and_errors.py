@@ -215,3 +215,17 @@ class TestStaleData:
     def test_events_url(self, plugin, google_api):
         fetch(plugin)
         assert google_api.calls[0][0] == f"{CAL_API}/calendars/primary/events"
+
+
+class TestDeletedTaskList:
+    def test_deleted_task_list_is_skipped_and_lists_reloaded(self, plugin, google_api, clock):
+        assert fetch(plugin).available is True
+        # The user deletes the Home list; the cached list of lists still has it.
+        google_api.task_lists["items"] = [i for i in google_api.task_lists["items"] if i["id"] != "list_home"]
+        google_api.fail("/lists/list_home/tasks", FakeResponse(google_error(404, "notFound"), 404))
+        clock.advance(31)
+        assert fetch(plugin).available is True
+        clock.advance(31)
+        before = len(google_api.calls)
+        assert fetch(plugin).available is True
+        assert not any("/lists/list_home/" in url for url in google_api.urls()[before:])

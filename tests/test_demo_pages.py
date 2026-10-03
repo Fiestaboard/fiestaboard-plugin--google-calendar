@@ -62,3 +62,11 @@ def test_demo_variables_are_defined(device_type: str, template: list) -> None:
                 invalid.append(ref)
 
     assert not invalid, f"Demo '{device_type}' references undefined variables: {invalid}"
+
+
+def test_teaser_and_previews_fit_the_boards():
+    from src.plugins.previews import validate_previews, validate_teaser
+
+    manifest = _load_manifest()
+    assert validate_teaser(manifest["teaser"]) == []
+    assert validate_previews(manifest["previews"]) == []

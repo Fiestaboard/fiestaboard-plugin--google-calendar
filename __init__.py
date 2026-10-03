@@ -440,7 +440,15 @@ class GoogleCalendarPlugin(PluginBase):
         tasks: List[Dict[str, Any]] = []
         for index, task_list in enumerate(self._load_task_lists(token)):
             url = f"{TASKS_API}/lists/{quote(task_list['id'], safe='')}/tasks"
-            body = self._get(token, url, params, TASKS)
+            try:
+                body = self._get(token, url, params, TASKS)
+            except GoogleError as exc:
+                if exc.status != 404:
+                    raise
+                # The list was deleted since the lists were cached: skip it
+                # and read the lists again next time.
+                self._task_lists = None
+                continue
             for item in body.get("items") or []:
                 if isinstance(item, dict):
                     tasks.append({**item, "_list": task_list.get("title", ""), "_list_index": index})
